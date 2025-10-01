@@ -9,8 +9,13 @@ import math
 
 # search an unordered list L for a key x using iterate
 def isearch(L, x):
-    ###TODO
-    ###
+    # define update function
+    def f(found, item):
+        # if the item is found, stay True. Otherwise, check the current item
+        return found or (item == x)
+    
+    # run iterate with an initial state of False
+    return iterate(f, False, L)
 
 def test_isearch():
     assert isearch([1, 3, 5, 4, 2, 9, 7], 2) == (2 in [1, 3, 5, 4, 2, 9, 7])
@@ -28,8 +33,15 @@ def iterate(f, x, a):
 
 # search an unordered list L for a key x using reduce
 def rsearch(L, x):
-    ###TODO
-    ###
+    # define an OR function for reducing
+    def or_f(left, right):
+        return left or right
+    
+    # Map each element to True if it matches x, False otherwise
+    mapped = [element == x for element in L]
+    
+    # Reduce using OR operation
+    return ureduce(or_f, False, mapped)
 
 def test_rsearch():
     assert rsearch([1, 3, 5, 4, 2, 9, 7], 2) == (2 in [1, 3, 5, 4, 2, 9, 7])
@@ -99,8 +111,19 @@ def parens_update(current_output, next_input):
     Returns:
       the updated value of `current_output`
     """
-    ###TODO
-    ###
+    # if we see an open parenthesis, increment the counter
+    if next_input == '(':
+        return current_output + 1
+    # if we see a close parenthesis
+    elif next_input == ')':
+        # if counter is already 0, that means invalid (too many ')')
+        if current_output == 0:
+            return -math.inf
+        # otherwise, decrement the counter
+        return current_output - 1
+    # any other character leaves the counter unchanged
+    else:
+        return current_output
 
 
 def test_parens_match_iterative():
@@ -133,8 +156,21 @@ def parens_match_scan(mylist):
     False
     
     """
-    ###TODO
-    ###
+    # Handle empty list
+    if len(mylist) == 0:
+        return True
+    
+    # Map each character: '(' -> 1, ')' -> -1, other -> 0
+    mapped = [paren_map(x) for x in mylist]
+    
+    # Compute prefix sums using scan with addition
+    prefix_sums, total = scan(lambda x, y: x + y, 0, mapped)
+    
+    # Check two conditions:
+    # 1. No prefix sum should be negative, meaning never more ) than (
+    # 2. Final sum should be 0, meaning they all match
+    
+    return total == 0 and all(min_f(x, 0) == 0 for x in prefix_sums)
 
 def scan(f, id_, a):
     """
@@ -211,15 +247,34 @@ def parens_match_dc_helper(mylist):
       L is the number of unmatched left parentheses. This output is used by 
       parens_match_dc to return the final True or False value
     """
-    ###TODO
     # base cases
+    if len(mylist) == 0:
+        return (0, 0)
+    elif len(mylist) == 1:
+        if mylist[0] == '(':
+            return (0, 1)  # 0 unmatched right, 1 unmatched left
+        elif mylist[0] == ')':
+            return (1, 0)  # 1 unmatched right, 0 unmatched left
+        else:
+            return (0, 0)  # not a parenthesis
     
     # recursive case
+    mid = len(mylist) // 2
+
     # - first solve subproblems
+    left_unmatched_right, left_unmatched_left = parens_match_dc_helper(mylist[:mid])
+    right_unmatched_right, right_unmatched_left = parens_match_dc_helper(mylist[mid:])
     
     # - then compute the solution (R,L) using these solutions, in constant time.
+    matches = min(left_unmatched_left, right_unmatched_right)
     
-    ###
+    # Total unmatched right = unmatched right from left + (unmatched right from right - matches)
+    total_unmatched_right = left_unmatched_right + (right_unmatched_right - matches)
+    
+    # Total unmatched left = (unmatched left from left - matches) + unmatched left from right
+    total_unmatched_left = (left_unmatched_left - matches) + right_unmatched_left
+    
+    return (total_unmatched_right, total_unmatched_left)
     
 
 def test_parens_match_dc():
